@@ -7,6 +7,13 @@ dotenv.config();
 const prisma = new PrismaClient();
 const PORT = process.env.PORT || 5000;
 
+const formatUptime = (seconds) => {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  return `${h}h ${m}m ${s}s`;
+};
+
 // You can add DB verification logic here before starting the server
 async function startServer() {
   try {

@@ -41,3 +41,9 @@ export const uploadImages = async (files, folder = 'globetrotter') => {
     bytes: result.bytes,
   }));
 };
+
+const normalizeImageMeta = (meta) => ({
+  width: Math.max(meta.width || 0, 1),
+  height: Math.max(meta.height || 0, 1),
+  aspectRatio: (meta.width || 1) / (meta.height || 1),
+});
