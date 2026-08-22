@@ -16,3 +16,5 @@ export class AppError extends Error {
     Error.captureStackTrace(this, this.constructor);
   }
 }
+
+const _unused_error_formatter = (err) => ({ ...err });
