@@ -2,19 +2,19 @@ import { createFileRoute, useNavigate, Link } from '@tanstack/react-router'
 import { useState, useEffect } from 'react'
 import useAuthStore from '@/store/authStore'
 import api from '@/lib/axios'
+import { getCityImage, getActivityImage } from '@/lib/placeImages'
 
 export const Route = createFileRoute('/search')({
   component: SearchPage,
   validateSearch: (search) => ({
     q: search?.q || '',
-    type: search?.type || 'cities', // 'cities' | 'activities'
+    type: search?.type || 'cities',
   }),
 })
 
 function SearchPage() {
   const { q: initialQuery, type: initialType } = Route.useSearch()
   const navigate = useNavigate()
-  const { user } = useAuthStore()
 
   const [searchType, setSearchType] = useState(initialType || 'cities')
   const [searchQuery, setSearchQuery] = useState(initialQuery || '')
@@ -30,7 +30,6 @@ function SearchPage() {
   const [errorMsg, setErrorMsg] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
 
-  // Fetch countries & saved destinations on mount
   useEffect(() => {
     const fetchMasterData = async () => {
       try {
@@ -49,28 +48,24 @@ function SearchPage() {
     fetchMasterData()
   }, [])
 
-  // Execute Search
   const performSearch = async () => {
     setLoading(true)
     setErrorMsg('')
     try {
       if (searchType === 'cities') {
-        // City Search (GET /api/v1/cities?search=...&countryId=...)
         const params = new URLSearchParams()
         if (searchQuery.trim()) params.append('search', searchQuery.trim())
         if (selectedCountryId) params.append('countryId', selectedCountryId)
-        if (!searchQuery.trim() && !selectedCountryId) params.append('search', 'a') // default fallback search
+        if (!searchQuery.trim() && !selectedCountryId) params.append('search', 'a')
 
         const res = await api.get(`/cities?${params.toString()}`)
         let results = res.data?.data || res.data || []
 
-        // Sorting
         if (sortBy === 'POPULARITY') results.sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
         if (sortBy === 'NAME') results.sort((a, b) => a.name.localeCompare(b.name))
 
         setCities(results)
       } else {
-        // Activity Search (across sample/master cities or selected country)
         const cityParams = new URLSearchParams()
         if (searchQuery.trim()) cityParams.append('search', searchQuery.trim())
         if (selectedCountryId) cityParams.append('countryId', selectedCountryId)
@@ -90,7 +85,6 @@ function SearchPage() {
           }
         }
 
-        // Filter category
         if (selectedCategory !== 'ALL') {
           allActivities = allActivities.filter((a) => a.category === selectedCategory)
         }
@@ -164,9 +158,9 @@ function SearchPage() {
 
       {/* Main Container */}
       <main className="page-container" style={{ flex: 1 }}>
-        <div style={{ marginBottom: '16px' }}>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800 }}>Activity & City Search (Screen 8)</h1>
-          <p style={{ color: 'var(--muted)', fontSize: '0.875rem' }}>Discover destinations, compare cost indices, and explore experiences</p>
+        <div style={{ marginBottom: '20px' }}>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 800 }}>Activity & City Search</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Discover destinations, compare cost indices, and explore experiences with real photos</p>
         </div>
 
         {/* Alerts */}
@@ -180,21 +174,21 @@ function SearchPage() {
             className={`tab-button ${searchType === 'cities' ? 'active' : ''}`}
             onClick={() => setSearchType('cities')}
           >
-            🏙️ City Search (Screen 8)
+            🏙️ City Search
           </button>
           <button
             type="button"
             className={`tab-button ${searchType === 'activities' ? 'active' : ''}`}
             onClick={() => setSearchType('activities')}
           >
-            🏄 Activity Search (Screen 8)
+            🏄 Activity Search
           </button>
         </div>
 
-        {/* Search & Filter Controls Bar (Screen 8 Wireframe: Search bar, Group by, Filter, Sort by...) */}
+        {/* Search Bar */}
         <form onSubmit={handleSearchSubmit} className="search-filter-bar">
           <div className="search-input-wrapper">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8" />
               <line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
@@ -244,13 +238,13 @@ function SearchPage() {
               <option value="NAME">Sort by: Name (A-Z)</option>
             </select>
 
-            <button type="submit" className="btn-primary" style={{ width: 'auto', padding: '8px 16px' }}>
+            <button type="submit" className="btn-primary" style={{ width: 'auto', padding: '10px 20px' }}>
               Search
             </button>
           </div>
         </form>
 
-        {/* ── Search Results List (Screen 8 Wireframe) ── */}
+        {/* ── Search Results List ── */}
         <section>
           <div className="section-header">
             <h2 className="section-title">Results ({searchType === 'cities' ? cities.length : activities.length})</h2>
@@ -260,50 +254,48 @@ function SearchPage() {
             <div className="empty-state">Searching {searchType}…</div>
           ) : searchType === 'cities' ? (
             cities.length > 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div className="card-grid">
                 {cities.map((city) => {
                   const isSaved = savedCityIds.includes(city.id)
+                  const imgUrl = getCityImage(city.name, city.imageUrl)
                   return (
-                    <div key={city.id} className="timeline-item" style={{ padding: '20px' }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text)' }}>{city.name}</h3>
-                          <span className="trip-badge badge-upcoming">
-                            {city.country?.name || 'Destination'}
-                          </span>
-                          {city.costIndex && (
-                            <span style={{ fontSize: '0.75rem', color: 'var(--muted)', fontWeight: 600 }}>
-                              Cost Index: {city.costIndex}/100
-                            </span>
-                          )}
-                        </div>
-
-                        <div style={{ fontSize: '0.8125rem', color: 'var(--muted)', marginTop: '4px' }}>
-                          Popularity Rating: <strong>{city.popularity || 85}/100</strong> • State/Region: {city.state?.name || 'N/A'}
-                        </div>
+                    <div key={city.id} className="destination-card">
+                      <div className="destination-image-container">
+                        <img src={imgUrl} alt={city.name} className="destination-card-img" loading="lazy" />
                       </div>
+                      <div className="destination-info">
+                        <div>
+                          <div className="destination-name">{city.name}</div>
+                          <div className="destination-sub">{city.country?.name || 'Destination'}</div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 6 }}>
+                            Popularity: <strong>{city.popularity || 88}/100</strong> • Cost Index: {city.costIndex || 75}/100
+                          </div>
+                        </div>
 
-                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                        <button
-                          type="button"
-                          className="filter-select"
-                          style={{
-                            color: isSaved ? 'var(--primary)' : 'var(--text)',
-                            borderColor: isSaved ? 'var(--primary)' : 'var(--border)'
-                          }}
-                          onClick={(e) => handleToggleSaveCity(city.id, e)}
-                        >
-                          {isSaved ? '★ Bookmarked' : '☆ Bookmark'}
-                        </button>
+                        <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
+                          <button
+                            type="button"
+                            className="filter-select"
+                            style={{
+                              flex: 1,
+                              fontSize: '0.75rem',
+                              color: isSaved ? 'var(--primary)' : 'var(--text-main)',
+                              borderColor: isSaved ? 'var(--primary)' : 'var(--border)'
+                            }}
+                            onClick={(e) => handleToggleSaveCity(city.id, e)}
+                          >
+                            {isSaved ? '★ Bookmarked' : '☆ Bookmark'}
+                          </button>
 
-                        <button
-                          type="button"
-                          className="btn-primary"
-                          style={{ width: 'auto', padding: '8px 16px', fontSize: '0.8125rem' }}
-                          onClick={() => navigate({ to: '/trips/create', search: { destination: city.name } })}
-                        >
-                          + Plan Trip Here
-                        </button>
+                          <button
+                            type="button"
+                            className="btn-primary"
+                            style={{ flex: 1, padding: '6px 12px', fontSize: '0.75rem' }}
+                            onClick={() => navigate({ to: '/trips/create', search: { destination: city.name } })}
+                          >
+                            + Plan Trip
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )
@@ -314,41 +306,42 @@ function SearchPage() {
             )
           ) : (
             activities.length > 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {activities.map((act) => (
-                  <div key={act.id} className="timeline-item" style={{ padding: '20px' }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text)' }}>{act.name}</h3>
-                        <span className="trip-badge badge-ongoing">{act.category || 'ACTIVITY'}</span>
-                        {act.cityName && (
-                          <span style={{ fontSize: '0.75rem', color: 'var(--muted)', fontWeight: 600 }}>
-                            📍 {act.cityName}
+              <div className="card-grid">
+                {activities.map((act) => {
+                  const imgUrl = getActivityImage(act.category, act.imageUrl)
+                  return (
+                    <div key={act.id} className="destination-card">
+                      <div className="destination-image-container">
+                        <img src={imgUrl} alt={act.name} className="destination-card-img" loading="lazy" />
+                      </div>
+                      <div className="destination-info">
+                        <div>
+                          <div className="destination-name">{act.name}</div>
+                          <span className="trip-badge badge-ongoing" style={{ marginTop: 4, display: 'inline-block' }}>
+                            {act.category || 'ACTIVITY'}
                           </span>
-                        )}
-                      </div>
+                          <p style={{ fontSize: '0.8125rem', color: 'var(--text-sub)', margin: '8px 0 10px', lineHeight: 1.4 }}>
+                            {act.description || 'Recommended activity experience.'}
+                          </p>
+                        </div>
 
-                      <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', margin: '6px 0 8px' }}>
-                        {act.description || 'Recommended activity.'}
-                      </p>
-
-                      <div style={{ fontSize: '0.8125rem', color: 'var(--text)', fontWeight: 600 }}>
-                        Est. Cost: ₹{Number(act.defaultCost || 0).toLocaleString()} • Duration: {act.durationMin || 90} mins
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 }}>
+                          <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                            Est: ₹{Number(act.defaultCost || 0).toLocaleString()}
+                          </div>
+                          <button
+                            type="button"
+                            className="btn-primary"
+                            style={{ width: 'auto', padding: '6px 12px', fontSize: '0.75rem' }}
+                            onClick={() => navigate({ to: '/trips/create', search: { destination: act.cityName || '' } })}
+                          >
+                            + Add to Trip
+                          </button>
+                        </div>
                       </div>
                     </div>
-
-                    <div>
-                      <button
-                        type="button"
-                        className="btn-primary"
-                        style={{ width: 'auto', padding: '8px 16px', fontSize: '0.8125rem' }}
-                        onClick={() => navigate({ to: '/trips/create', search: { destination: act.cityName || '' } })}
-                      >
-                        + Add to Trip
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             ) : (
               <div className="empty-state">No activities found matching your criteria.</div>

@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate, Link } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import useAuthStore from '@/store/authStore'
 import api from '@/lib/axios'
+import { getCityImage } from '@/lib/placeImages'
 
 export const Route = createFileRoute('/')({
   component: MainLandingPage,
@@ -29,21 +30,20 @@ function MainLandingPage() {
     const fetchData = async () => {
       setLoading(true)
       try {
-        // Fetch user trips
         const tripsRes = await api.get('/trips')
         setTrips(tripsRes.data?.data || tripsRes.data || [])
 
-        // Fetch top regional selections / popular cities
         try {
           const citiesRes = await api.get('/cities?search=a')
-          setCities((citiesRes.data?.data || citiesRes.data || []).slice(0, 6))
+          setCities((citiesRes.data?.data || citiesRes.data || []).slice(0, 8))
         } catch {
-          // Fallback static cities if query requires specific filter
           setCities([
             { id: '1', name: 'Paris', country: { name: 'France' }, popularity: 98 },
             { id: '2', name: 'Tokyo', country: { name: 'Japan' }, popularity: 95 },
             { id: '3', name: 'New York', country: { name: 'USA' }, popularity: 92 },
             { id: '4', name: 'Rome', country: { name: 'Italy' }, popularity: 90 },
+            { id: '5', name: 'London', country: { name: 'United Kingdom' }, popularity: 89 },
+            { id: '6', name: 'Bali', country: { name: 'Indonesia' }, popularity: 88 },
           ])
         }
       } catch (err) {
@@ -67,7 +67,6 @@ function MainLandingPage() {
     }
   }
 
-  // Filter & Search logic for trips
   const filteredTrips = trips.filter((trip) => {
     const matchesSearch = trip.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       trip.description?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -95,18 +94,13 @@ function MainLandingPage() {
 
           <nav>
             <ul className="navbar-links">
-              <li>
-                <Link to="/" className="nav-link active">Home</Link>
-              </li>
-              <li>
-                <Link to="/trips" className="nav-link">My Trips</Link>
-              </li>
-              <li>
-                <Link to="/community" className="nav-link">Community</Link>
-              </li>
+              <li><Link to="/" className="nav-link active">Home</Link></li>
+              <li><Link to="/trips" className="nav-link">My Trips</Link></li>
+              <li><Link to="/search" className="nav-link">Search Places</Link></li>
+              <li><Link to="/community" className="nav-link">Community</Link></li>
               {user.role === 'ADMIN' && (
                 <li>
-                  <Link to="/admin" className="nav-link" style={{ color: 'var(--primary)', fontWeight: 600 }}>Admin Panel</Link>
+                  <Link to="/admin" className="nav-link" style={{ color: 'var(--primary)', fontWeight: 700 }}>Admin Panel</Link>
                 </li>
               )}
             </ul>
@@ -129,9 +123,9 @@ function MainLandingPage() {
             {menuOpen && (
               <div style={{
                 position: 'absolute',
-                top: '48px',
+                top: '52px',
                 right: 0,
-                width: '200px',
+                width: '210px',
                 backgroundColor: 'var(--surface)',
                 border: '1px solid var(--border)',
                 borderRadius: 'var(--radius-md)',
@@ -139,17 +133,17 @@ function MainLandingPage() {
                 padding: '8px 0',
                 zIndex: 100
               }}>
-                <div style={{ padding: '8px 16px', borderBottom: '1px solid var(--border)' }}>
-                  <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{user.firstName} {user.lastName}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>@{user.username}</div>
+                <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)' }}>
+                  <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-main)' }}>{user.firstName} {user.lastName}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>@{user.username}</div>
                 </div>
                 <Link
                   to="/profile"
                   className="nav-link"
-                  style={{ display: 'block', padding: '8px 16px', color: 'var(--text)', borderRadius: 0 }}
+                  style={{ display: 'block', padding: '10px 16px', color: 'var(--text-main)', borderRadius: 0 }}
                   onClick={() => setMenuOpen(false)}
                 >
-                  My Profile
+                  👤 My Profile & Settings
                 </Link>
                 <button
                   type="button"
@@ -157,16 +151,16 @@ function MainLandingPage() {
                   style={{
                     width: '100%',
                     textAlign: 'left',
-                    padding: '8px 16px',
+                    padding: '10px 16px',
                     fontSize: '0.875rem',
                     color: 'var(--error)',
                     background: 'none',
                     border: 'none',
                     cursor: 'pointer',
-                    fontWeight: 500
+                    fontWeight: 600
                   }}
                 >
-                  Sign Out
+                  🚪 Sign Out
                 </button>
               </div>
             )}
@@ -174,14 +168,14 @@ function MainLandingPage() {
         </div>
       </header>
 
-      {/* ── Main Content Container ── */}
+      {/* ── Main Container ── */}
       <main className="page-container" style={{ flex: 1 }}>
-        {/* Banner Image (Screen 3) */}
+        {/* Banner Section */}
         <section className="hero-banner">
           <div className="hero-content">
             <h1 className="hero-title">Plan Your Next Journey With Confidence</h1>
             <p className="hero-subtitle">
-              Discover amazing destinations, schedule day-by-day itineraries, track expenses, and explore community trip guides.
+              Discover amazing global destinations, build interactive day-by-day itineraries, track budgets, and copy community travel plans.
             </p>
             <button
               type="button"
@@ -198,10 +192,10 @@ function MainLandingPage() {
           </div>
         </section>
 
-        {/* Global Search Bar (with Group by, Filter, Sort by...) */}
+        {/* Global Search Bar */}
         <section className="search-filter-bar">
           <div className="search-input-wrapper">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8" />
               <line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
@@ -214,7 +208,7 @@ function MainLandingPage() {
             />
           </div>
 
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
             <select
               value={groupBy}
               onChange={(e) => setGroupBy(e.target.value)}
@@ -222,7 +216,6 @@ function MainLandingPage() {
             >
               <option value="none">Group by: None</option>
               <option value="status">Group by: Status</option>
-              <option value="visibility">Group by: Visibility</option>
             </select>
 
             <select
@@ -243,38 +236,47 @@ function MainLandingPage() {
             >
               <option value="newest">Sort by: Newest First</option>
               <option value="oldest">Sort by: Oldest First</option>
-              <option value="name">Sort by: Name (A-Z)</option>
             </select>
           </div>
         </section>
 
-        {/* Top Regional Selections Section */}
-        <section style={{ marginBottom: '40px' }}>
+        {/* Top Regional Selections Section with Place Images */}
+        <section style={{ marginBottom: '44px' }}>
           <div className="section-header">
             <h2 className="section-title">Top Regional Selections</h2>
-            <Link to="/community" className="section-link">Explore all places →</Link>
+            <Link to="/search" className="section-link">Explore all places →</Link>
           </div>
 
           <div className="card-grid">
             {cities.length > 0 ? (
-              cities.map((city) => (
-                <div
-                  key={city.id}
-                  className="destination-card"
-                  onClick={() => navigate({ to: '/trips/create', search: { destination: city.name } })}
-                >
-                  <div className="destination-image-placeholder">
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                      <circle cx="12" cy="10" r="3" />
-                    </svg>
+              cities.map((city) => {
+                const imgUrl = getCityImage(city.name, city.imageUrl)
+                return (
+                  <div
+                    key={city.id}
+                    className="destination-card"
+                    onClick={() => navigate({ to: '/trips/create', search: { destination: city.name } })}
+                  >
+                    <div className="destination-image-container">
+                      <img
+                        src={imgUrl}
+                        alt={city.name}
+                        className="destination-card-img"
+                        loading="lazy"
+                      />
+                    </div>
+                    <div className="destination-info">
+                      <div>
+                        <div className="destination-name">{city.name}</div>
+                        <div className="destination-sub">{city.country?.name || 'Popular Destination'}</div>
+                      </div>
+                      <div style={{ marginTop: '10px', fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>
+                        + Plan Trip Here
+                      </div>
+                    </div>
                   </div>
-                  <div className="destination-info">
-                    <div className="destination-name">{city.name}</div>
-                    <div className="destination-sub">{city.country?.name || 'Popular Destination'}</div>
-                  </div>
-                </div>
-              ))
+                )
+              })
             ) : (
               <div className="empty-state" style={{ gridColumn: '1 / -1' }}>
                 Loading top regional selections…
@@ -312,20 +314,20 @@ function MainLandingPage() {
                         </span>
                       </div>
 
-                      <p style={{ fontSize: '0.8125rem', color: 'var(--muted)', margin: '8px 0 12px' }}>
+                      <p style={{ fontSize: '0.8125rem', color: 'var(--text-sub)', margin: '8px 0 12px', lineHeight: 1.4 }}>
                         {trip.description || 'No description provided.'}
                       </p>
 
                       <div className="trip-card-details">
                         <div>📅 {startDateStr} – {endDateStr}</div>
                         {trip.budget && (
-                          <div>💰 Budget: {trip.currency || 'INR'} {Number(trip.budget).toLocaleString()}</div>
+                          <div>💰 Budget: <strong>{trip.currency || 'INR'} {Number(trip.budget).toLocaleString()}</strong></div>
                         )}
                       </div>
                     </div>
 
                     <div className="trip-card-footer">
-                      <span style={{ fontSize: '0.8125rem', color: 'var(--primary)', fontWait: 600 }}>
+                      <span style={{ fontSize: '0.8125rem', color: 'var(--primary)', fontWeight: 700 }}>
                         View Itinerary →
                       </span>
                     </div>
@@ -335,22 +337,22 @@ function MainLandingPage() {
             </div>
           ) : (
             <div className="empty-state">
-              <p style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text)', marginBottom: '6px' }}>No trips found</p>
-              <p style={{ marginBottom: '16px' }}>You haven&apos;t created any trips yet. Start planning your first getaway now!</p>
+              <p style={{ fontSize: '1.0625rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '6px' }}>No trips created yet</p>
+              <p style={{ marginBottom: '18px', fontSize: '0.875rem' }}>Start planning your first getaway and create customized itineraries!</p>
               <button
                 type="button"
                 className="btn-primary"
-                style={{ width: 'auto', display: 'inline-flex', padding: '8px 16px' }}
+                style={{ width: 'auto', display: 'inline-flex', padding: '10px 20px' }}
                 onClick={() => navigate({ to: '/trips/create' })}
               >
-                + Plan a trip
+                + Plan a Trip
               </button>
             </div>
           )}
         </section>
       </main>
 
-      {/* Floating "+ Plan a trip" Action Button (Screen 3) */}
+      {/* Floating "+ Plan a trip" Action Button */}
       <button
         type="button"
         className="btn-floating-plan"
@@ -360,7 +362,7 @@ function MainLandingPage() {
           <line x1="12" y1="5" x2="12" y2="19" />
           <line x1="5" y1="12" x2="19" y2="12" />
         </svg>
-        Plan a trip
+        Plan a Trip
       </button>
     </div>
   )
