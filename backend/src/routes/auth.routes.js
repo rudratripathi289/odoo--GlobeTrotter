@@ -1,16 +1,13 @@
 import { Router } from 'express';
+import * as authController from '../controllers/auth.controller.js';
 
 const router = Router();
 
-// ==========================================
-// AUTH ROUTES
-// ==========================================
-
-router.post('/register', (req, res) => res.json({ message: 'register endpoint' }));
-router.post('/login', (req, res) => res.json({ message: 'login endpoint' }));
-router.post('/refresh', (req, res) => res.json({ message: 'refresh endpoint' }));
-router.post('/logout', (req, res) => res.json({ message: 'logout endpoint' }));
-router.post('/forgot-password', (req, res) => res.json({ message: 'forgot-password endpoint' }));
-router.post('/reset-password', (req, res) => res.json({ message: 'reset-password endpoint' }));
+router.post('/register', authController.register);
+router.post('/login', authController.login);
+router.post('/refresh', authController.refresh);
+router.post('/logout', authController.logout);
+router.post('/forgot-password', authController.forgotPassword);
+router.post('/reset-password', authController.resetPassword);
 
 export default router;

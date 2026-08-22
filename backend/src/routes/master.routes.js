@@ -1,16 +1,15 @@
 import { Router } from 'express';
+import * as masterController from '../controllers/master.controller.js';
+import { authenticate } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
-// ==========================================
-// MASTER DATA ROUTES (/countries, /states, /cities)
-// ==========================================
+// Authenticated (read-only master data)
+router.get('/countries', authenticate, masterController.getCountries);
+router.get('/states', authenticate, masterController.getStates);
 
-router.get('/countries', (req, res) => res.json({ message: 'get countries' }));
-router.get('/states', (req, res) => res.json({ message: 'get states' }));
-
-router.get('/cities', (req, res) => res.json({ message: 'get cities' }));
-router.get('/cities/:cityId', (req, res) => res.json({ message: 'get city by id' }));
-router.get('/cities/:cityId/activities', (req, res) => res.json({ message: 'get city activities' }));
+router.get('/cities', authenticate, masterController.getCities);
+router.get('/cities/:cityId', authenticate, masterController.getCityById);
+router.get('/cities/:cityId/activities', authenticate, masterController.getCityActivities);
 
 export default router;

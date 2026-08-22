@@ -1,13 +1,14 @@
 import { Router } from 'express';
+import * as communityController from '../controllers/community.controller.js';
+import { authenticate } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
-// ==========================================
-// COMMUNITY ROUTES (/community)
-// ==========================================
+// GET community trips — PUBLIC (no JWT required)
+router.get('/trips', communityController.getCommunityTrips);
+router.get('/trips/:tripId', communityController.getCommunityTripById);
 
-router.get('/trips', (req, res) => res.json({ message: 'get community trips' }));
-router.get('/trips/:tripId', (req, res) => res.json({ message: 'get community trip details' }));
-router.post('/trips/:tripId/copy', (req, res) => res.json({ message: 'copy community trip' }));
+// POST copy — requires authentication
+router.post('/trips/:tripId/copy', authenticate, communityController.copyTrip);
 
 export default router;

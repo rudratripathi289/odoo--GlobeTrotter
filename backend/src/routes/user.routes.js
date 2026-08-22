@@ -1,18 +1,17 @@
 import { Router } from 'express';
+import * as userController from '../controllers/user.controller.js';
+import { authenticate } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
-// ==========================================
-// USER ROUTES (/users)
-// ==========================================
+// All /users/me/* routes require authentication (self only)
+router.get('/me', authenticate, userController.getMe);
+router.patch('/me', authenticate, userController.updateMe);
+router.patch('/me/password', authenticate, userController.updatePassword);
+router.delete('/me', authenticate, userController.deleteMe);
 
-router.get('/me', (req, res) => res.json({ message: 'get current user' }));
-router.patch('/me', (req, res) => res.json({ message: 'update current user' }));
-router.patch('/me/password', (req, res) => res.json({ message: 'update password' }));
-router.delete('/me', (req, res) => res.json({ message: 'delete account' }));
-
-router.get('/me/saved-destinations', (req, res) => res.json({ message: 'get saved destinations' }));
-router.post('/me/saved-destinations', (req, res) => res.json({ message: 'add saved destination' }));
-router.delete('/me/saved-destinations/:cityId', (req, res) => res.json({ message: 'delete saved destination' }));
+router.get('/me/saved-destinations', authenticate, userController.getSavedDestinations);
+router.post('/me/saved-destinations', authenticate, userController.addSavedDestination);
+router.delete('/me/saved-destinations/:cityId', authenticate, userController.deleteSavedDestination);
 
 export default router;

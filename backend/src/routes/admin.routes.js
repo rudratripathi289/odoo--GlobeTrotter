@@ -1,38 +1,40 @@
 import { Router } from 'express';
+import * as adminController from '../controllers/admin.controller.js';
+import { authenticate } from '../middlewares/auth.middleware.js';
+import { requireAdmin } from '../middlewares/admin.middleware.js';
 
 const router = Router();
 
-// ==========================================
-// ADMIN ROUTES (/admin)
-// ==========================================
+// All admin routes require authentication + ADMIN role
+router.use(authenticate, requireAdmin);
 
 // --- USERS ---
-router.get('/users', (req, res) => res.json({ message: 'get all users' }));
-router.get('/users/:userId', (req, res) => res.json({ message: 'get user by id' }));
-router.patch('/users/:userId/role', (req, res) => res.json({ message: 'update user role' }));
-router.delete('/users/:userId', (req, res) => res.json({ message: 'delete user' }));
+router.get('/users', adminController.getAllUsers);
+router.get('/users/:userId', adminController.getUserById);
+router.patch('/users/:userId/role', adminController.updateUserRole);
+router.delete('/users/:userId', adminController.deleteUser);
 
 // --- ANALYTICS ---
-router.get('/analytics/overview', (req, res) => res.json({ message: 'analytics overview' }));
-router.get('/analytics/popular-cities', (req, res) => res.json({ message: 'analytics popular cities' }));
-router.get('/analytics/popular-activities', (req, res) => res.json({ message: 'analytics popular activities' }));
-router.get('/analytics/copied-trips', (req, res) => res.json({ message: 'analytics copied trips' }));
+router.get('/analytics/overview', adminController.getAnalyticsOverview);
+router.get('/analytics/popular-cities', adminController.getPopularCities);
+router.get('/analytics/popular-activities', adminController.getPopularActivities);
+router.get('/analytics/copied-trips', adminController.getCopiedTrips);
 
 // --- MASTER DATA MANAGEMENT ---
-router.post('/countries', (req, res) => res.json({ message: 'create country' }));
-router.patch('/countries/:id', (req, res) => res.json({ message: 'update country' }));
-router.delete('/countries/:id', (req, res) => res.json({ message: 'delete country' }));
+router.post('/countries', adminController.createCountry);
+router.patch('/countries/:id', adminController.updateCountry);
+router.delete('/countries/:id', adminController.deleteCountry);
 
-router.post('/states', (req, res) => res.json({ message: 'create state' }));
-router.patch('/states/:id', (req, res) => res.json({ message: 'update state' }));
-router.delete('/states/:id', (req, res) => res.json({ message: 'delete state' }));
+router.post('/states', adminController.createState);
+router.patch('/states/:id', adminController.updateState);
+router.delete('/states/:id', adminController.deleteState);
 
-router.post('/cities', (req, res) => res.json({ message: 'create city' }));
-router.patch('/cities/:id', (req, res) => res.json({ message: 'update city' }));
-router.delete('/cities/:id', (req, res) => res.json({ message: 'delete city' }));
+router.post('/cities', adminController.createCity);
+router.patch('/cities/:id', adminController.updateCity);
+router.delete('/cities/:id', adminController.deleteCity);
 
-router.post('/activities', (req, res) => res.json({ message: 'create master activity' }));
-router.patch('/activities/:id', (req, res) => res.json({ message: 'update master activity' }));
-router.delete('/activities/:id', (req, res) => res.json({ message: 'delete master activity' }));
+router.post('/activities', adminController.createActivity);
+router.patch('/activities/:id', adminController.updateActivity);
+router.delete('/activities/:id', adminController.deleteActivity);
 
 export default router;
