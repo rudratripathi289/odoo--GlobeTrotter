@@ -1,21 +1,496 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
-// For NeonDB, use connection pooling by appending ?pgbouncer=true (or using the pooled URL provided by Neon)
-// to your DATABASE_URL in the .env file.
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum Visibility {
+  PRIVATE
+  SHARED
+  PUBLIC
+}
+
+enum Permission {
+  VIEW
+}
+
+enum ActivityCategory {
+  SIGHTSEEING
+  FOOD
+  ADVENTURE
+  SHOPPING
+  CULTURE
+  NATURE
+  ENTERTAINMENT
+  OTHER
+}
+
+// NOTE: no ACTIVITY member here on purpose.
+// Activity cost lives in TripActivity.estimatedCost.
+// Budget total = SUM(TripActivity.estimatedCost) + SUM(Expense.amount)
+enum ExpenseCategory {
+  TRANSPORT
+  HOTEL
+  FOOD
+  OTHER
+}
+
+
+// ============================================================
+// USER
+// ============================================================
+
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  name      String?
+  id           String   @id @default(uuid())
+
+  firstName    String
+  lastName     String
+  username     String   @unique
+  email        String   @unique
+  passwordHash String
+
+  phone        String?
+  photoUrl     String?
+  city         String?
+  country      String?
+  bio          String?
+
+  language     String   @default("en")
+  role         UserRole @default(USER)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  trips               Trip[]
+  sharedTrips         TripShare[]
+  savedDestinations   SavedDestination[]
+  passwordResetTokens PasswordResetToken[]
+}
+
+
+// ============================================================
+// COUNTRY
+// ============================================================
+
+model Country {
+  id        String   @id @default(uuid())
+
+  name      String   @unique
+  code      String   @unique
+
+  states    State[]
+  cities    City[]
+
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+}
+
+
+// ============================================================
+// STATE / REGION
+// ============================================================
+
+model State {
+  id        String   @id @default(uuid())
+
+  countryId String
+  name      String
+
+  country   Country  @relation(
+    fields: [countryId],
+    references: [id],
+    onDelete: Restrict
+  )
+
+  cities    City[]
+
+  createdAt DateTime @default(now())
+
+  @@unique([countryId, name])
+  @@index([countryId])
+}
+
+
+// ============================================================
+// CITY
+// ============================================================
+//
+// stateId is REQUIRED so that the composite unique key actually
+// works. Postgres treats NULLs as distinct, so a nullable stateId
+// would silently allow duplicate cities.
+//
+// For countries without states, seed a placeholder State row
+// (e.g. "Singapore" -> state "Singapore").
+// ============================================================
+
+model City {
+  id          String   @id @default(uuid())
+
+  countryId   String
+  stateId     String
+
+  name        String
+  popularity  Int      @default(0)
+  costIndex   Int?
+
+  country     Country  @relation(
+    fields: [countryId],
+    references: [id],
+    onDelete: Restrict
+  )
+
+  state       State    @relation(
+    fields: [stateId],
+    references: [id],
+    onDelete: Restrict
+  )
+
+  stops       TripStop[]
+  activities  Activity[]
+  savedBy     SavedDestination[]
+
+  createdAt   DateTime @default(now())
+
+  @@unique([countryId, stateId, name])
+
+  @@index([name])
+  @@index([countryId])
+  @@index([stateId])
+  @@index([popularity])
+}
+
+
+// ============================================================
+// TRIP
+// ============================================================
+
+model Trip {
+  id          String   @id @default(uuid())
+
+  userId      String
+
+  name        String
+  description String?
+
+  startDate   DateTime
+  endDate     DateTime
+
+  budget      Decimal? @db.Decimal(12, 2)
+  currency    String   @default("INR")
+
+  coverImage  String?
+
+  visibility  Visibility @default(PRIVATE)
+
+  // Set when this trip was created via "Copy Trip"
+  copiedFromTripId String?
+
+  user        User     @relation(
+    fields: [userId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  copiedFromTrip Trip? @relation(
+    "TripCopy",
+    fields: [copiedFromTripId],
+    references: [id],
+    onDelete: SetNull
+  )
+
+  copies       Trip[] @relation("TripCopy")
+
+  stops        TripStop[]
+  expenses     Expense[]
+  shares       TripShare[]
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId, startDate])
+  @@index([visibility, startDate])
+  @@index([copiedFromTripId])
+}
+
+
+// ============================================================
+// TRIP STOP
+// ============================================================
+//
+// sequence is NOT unique.
+// Reordering renumbers every stop in the trip inside one
+// transaction. A unique constraint would fire mid-update.
+// ============================================================
+
+model TripStop {
+  id          String   @id @default(uuid())
+
+  tripId      String
+  cityId      String
+
+  sequence    Int
+
+  startDate   DateTime
+  endDate     DateTime
+
+  budget      Decimal? @db.Decimal(12, 2)
+
+  trip        Trip     @relation(
+    fields: [tripId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  city        City     @relation(
+    fields: [cityId],
+    references: [id],
+    onDelete: Restrict
+  )
+
+  activities  TripActivity[]
+  expenses    Expense[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([tripId, sequence])
+  @@index([cityId])
+}
+
+
+// ============================================================
+// MASTER ACTIVITY
+// ============================================================
+
+model Activity {
+  id           String   @id @default(uuid())
+
+  cityId       String
+
+  name         String
+  description  String?
+
+  category     ActivityCategory
+
+  defaultCost  Decimal? @db.Decimal(12, 2)
+  durationMin  Int?
+
+  imageUrl     String?
+
+  city         City     @relation(
+    fields: [cityId],
+    references: [id],
+    onDelete: Restrict
+  )
+
+  tripActivities TripActivity[]
+
+  createdAt    DateTime @default(now())
+
+  @@index([cityId])
+  @@index([name])
+  @@index([category])
+}
+
+
+// ============================================================
+// TRIP ACTIVITY
+// ============================================================
+//
+// Either a master activity (activityId) or a custom one
+// (customName). At least one MUST be present — enforced by a
+// CHECK constraint added in a raw migration (see notes).
+// ============================================================
+
+model TripActivity {
+  id             String   @id @default(uuid())
+
+  stopId         String
+
+  activityId     String?
+  customName     String?
+
+  description    String?
+
+  // Ordering within a single day
+  sequence       Int
+
+  activityDate   DateTime
+
+  // Minutes after midnight. 600 = 10:00 AM
+  startMinute    Int?
+
+  durationMin    Int?
+
+  // Cost snapshot for THIS trip
+  estimatedCost  Decimal? @db.Decimal(12, 2)
+
+  stop           TripStop @relation(
+    fields: [stopId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  activity       Activity? @relation(
+    fields: [activityId],
+    references: [id],
+    onDelete: Restrict
+  )
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([stopId, activityDate, sequence])
+  @@index([activityId])
+}
+
+
+// ============================================================
+// EXPENSE
+// ============================================================
+//
+// tripId is REQUIRED  -> trip-level costs (flights, insurance,
+//                        visa) that belong to no single stop.
+// stopId is OPTIONAL  -> per-stop costs (hotel in Manali).
+//
+// The service layer MUST assert that stop.tripId === tripId
+// before insert/update.
+//
+// Does NOT include activity costs — those live in
+// TripActivity.estimatedCost.
+// ============================================================
+
+model Expense {
+  id            String   @id @default(uuid())
+
+  tripId        String
+  stopId        String?
+
+  category      ExpenseCategory
+  description   String
+
+  amount        Decimal  @db.Decimal(12, 2)
+
+  expenseDate   DateTime
+
+  trip          Trip     @relation(
+    fields: [tripId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  stop          TripStop? @relation(
+    fields: [stopId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([tripId, expenseDate])
+  @@index([stopId])
+}
+
+
+// ============================================================
+// TRIP SHARE
+// ============================================================
+//
+// PUBLIC trips need no TripShare rows — they are discovered
+// through Trip.visibility = PUBLIC.
+// ============================================================
+
+model TripShare {
+  id          String     @id @default(uuid())
+
+  tripId      String
+  userId      String
+
+  permission  Permission @default(VIEW)
+
+  trip        Trip       @relation(
+    fields: [tripId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  user        User       @relation(
+    fields: [userId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  createdAt   DateTime @default(now())
+
+  @@unique([tripId, userId])
+  @@index([userId])
+}
+
+
+// ============================================================
+// SAVED DESTINATION
+// ============================================================
+
+model SavedDestination {
+  id        String   @id @default(uuid())
+
+  userId    String
+  cityId    String
+
+  user      User     @relation(
+    fields: [userId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  city      City     @relation(
+    fields: [cityId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, cityId])
+  @@index([cityId])
+}
+
+
+// ============================================================
+// PASSWORD RESET TOKEN
+// ============================================================
+
+model PasswordResetToken {
+  id          String   @id @default(uuid())
+
+  userId      String
+
+  // Store the HASHED token, never the raw one
+  tokenHash   String   @unique
+
+  expiresAt   DateTime
+  usedAt      DateTime?
+
+  user        User     @relation(
+    fields: [userId],
+    references: [id],
+    onDelete: Cascade
+  )
+
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
 }
