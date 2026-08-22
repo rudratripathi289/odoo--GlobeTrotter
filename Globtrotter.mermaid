@@ -1,0 +1,178 @@
+erDiagram
+
+    %% ============================================================
+    %% GlobeTrotter — Entity Relationship Diagram
+    %% Master data | User trip data | Social data
+    %% ============================================================
+
+    User ||--o{ Trip : "creates"
+    User ||--o{ TripShare : "receives"
+    User ||--o{ SavedDestination : "saves"
+    User ||--o{ PasswordResetToken : "requests"
+
+    Country ||--o{ State : "has"
+    Country ||--o{ City : "has"
+    State ||--o{ City : "has"
+
+    City ||--o{ TripStop : "visited as"
+    City ||--o{ Activity : "offers"
+    City ||--o{ SavedDestination : "saved as"
+
+    Trip ||--o{ TripStop : "contains"
+    Trip ||--o{ Expense : "incurs"
+    Trip ||--o{ TripShare : "shared via"
+    Trip |o--o{ Trip : "copied into"
+
+    TripStop ||--o{ TripActivity : "schedules"
+    TripStop |o--o{ Expense : "optionally scoped to"
+
+    Activity |o--o{ TripActivity : "selected as"
+
+    %% ============================================================
+    %% USER / AUTH
+    %% ============================================================
+
+    User {
+        String id PK
+        String firstName
+        String lastName
+        String username UK
+        String email UK
+        String passwordHash
+        String phone "nullable"
+        String photoUrl "nullable"
+        String city "nullable"
+        String country "nullable"
+        String bio "nullable"
+        String language "default en"
+        UserRole role "USER | ADMIN"
+        DateTime createdAt
+        DateTime updatedAt
+    }
+
+    PasswordResetToken {
+        String id PK
+        String userId FK
+        String tokenHash UK "hashed, never raw"
+        DateTime expiresAt
+        DateTime usedAt "nullable"
+        DateTime createdAt
+    }
+
+    %% ============================================================
+    %% MASTER DATA (seeded, onDelete Restrict)
+    %% ============================================================
+
+    Country {
+        String id PK
+        String name UK
+        String code UK
+        DateTime createdAt
+    }
+
+    State {
+        String id PK
+        String countryId FK
+        String name
+        DateTime createdAt
+    }
+
+    City {
+        String id PK
+        String countryId FK
+        String stateId FK "required, keeps unique key valid"
+        String name
+        Int popularity "default 0"
+        Int costIndex "nullable"
+        DateTime createdAt
+    }
+
+    Activity {
+        String id PK
+        String cityId FK
+        String name
+        String description "nullable"
+        ActivityCategory category "SIGHTSEEING FOOD ADVENTURE SHOPPING CULTURE NATURE ENTERTAINMENT OTHER"
+        Decimal defaultCost "nullable"
+        Int durationMin "nullable"
+        String imageUrl "nullable"
+        DateTime createdAt
+    }
+
+    %% ============================================================
+    %% USER TRIP DATA (onDelete Cascade)
+    %% ============================================================
+
+    Trip {
+        String id PK
+        String userId FK
+        String name
+        String description "nullable"
+        DateTime startDate
+        DateTime endDate
+        Decimal budget "nullable"
+        String currency "default INR"
+        String coverImage "nullable"
+        Visibility visibility "PRIVATE | SHARED | PUBLIC"
+        String copiedFromTripId FK "nullable, self-relation"
+        DateTime createdAt
+        DateTime updatedAt
+    }
+
+    TripStop {
+        String id PK
+        String tripId FK
+        String cityId FK
+        Int sequence "not unique, renumbered on reorder"
+        DateTime startDate
+        DateTime endDate
+        Decimal budget "nullable"
+        DateTime createdAt
+        DateTime updatedAt
+    }
+
+    TripActivity {
+        String id PK
+        String stopId FK
+        String activityId FK "nullable, from master"
+        String customName "nullable, user-entered"
+        String description "nullable"
+        Int sequence "order within the day"
+        DateTime activityDate
+        Int startMinute "nullable, minutes after midnight"
+        Int durationMin "nullable"
+        Decimal estimatedCost "nullable, cost snapshot"
+        DateTime createdAt
+        DateTime updatedAt
+    }
+
+    Expense {
+        String id PK
+        String tripId FK "required"
+        String stopId FK "nullable, trip-level if null"
+        ExpenseCategory category "TRANSPORT | HOTEL | FOOD | OTHER"
+        String description
+        Decimal amount
+        DateTime expenseDate
+        DateTime createdAt
+        DateTime updatedAt
+    }
+
+    %% ============================================================
+    %% SOCIAL DATA
+    %% ============================================================
+
+    TripShare {
+        String id PK
+        String tripId FK
+        String userId FK
+        Permission permission "VIEW"
+        DateTime createdAt
+    }
+
+    SavedDestination {
+        String id PK
+        String userId FK
+        String cityId FK
+        DateTime createdAt
+    }
