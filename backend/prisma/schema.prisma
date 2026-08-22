@@ -61,14 +61,15 @@ model User {
   country      String?
   bio          String?
   language     String   @default("en")
-  role         UserRole @default(USER)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  isEmailVerified Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  trips               Trip[]
-  sharedTrips         TripShare[]
-  savedDestinations   SavedDestination[]
-  passwordResetTokens PasswordResetToken[]
+  trips                  Trip[]
+  sharedTrips            TripShare[]
+  savedDestinations      SavedDestination[]
+  passwordResetTokens    PasswordResetToken[]
+  emailVerificationTokens EmailVerificationToken[]
 }
 
 // ============================================================
