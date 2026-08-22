@@ -1,5 +1,7 @@
 import * as uploadService from '../services/upload.service.js';
 
+const SUPPORTED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
 export const uploadSingleImage = async (req, res, next) => {
   try {
     const folder = req.query.folder || 'globetrotter';

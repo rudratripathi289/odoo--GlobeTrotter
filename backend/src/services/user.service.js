@@ -16,6 +16,11 @@ const paginate = (query) => {
   return { skip: (page - 1) * limit, take: limit, page, limit };
 };
 
+const maskEmail = (email) => {
+  const [local, domain] = email.split('@');
+  return `${local[0]}***@${domain}`;
+};
+
 // ─── Services ─────────────────────────────────────────────────────────────────
 
 export const getMe = async (userId) => {

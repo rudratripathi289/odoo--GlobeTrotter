@@ -1,5 +1,7 @@
 import { ZodError } from 'zod';
 
+const PRISMA_ERROR_MAP = { P2002: 409, P2003: 409, P2025: 404 };
+
 /**
  * Middleware: globalErrorHandler
  * Must be the LAST middleware registered in app.js (4-arg signature).

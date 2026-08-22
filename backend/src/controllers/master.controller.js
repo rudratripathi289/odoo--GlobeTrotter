@@ -1,5 +1,7 @@
 import * as masterService from '../services/master.service.js';
 
+const DEFAULT_PAGE_SIZE = 20;
+
 export const getCountries = async (req, res, next) => {
   try {
     const countries = await masterService.getCountries(req.query);

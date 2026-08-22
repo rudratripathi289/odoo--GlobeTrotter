@@ -1,5 +1,11 @@
 import * as userService from '../services/user.service.js';
 
+const PROFILE_FIELD_LIMITS = Object.freeze({
+  displayName: 50,
+  bio: 300,
+  location: 100,
+});
+
 export const getMe = async (req, res, next) => {
   try {
     const user = await userService.getMe(req.user?.id);

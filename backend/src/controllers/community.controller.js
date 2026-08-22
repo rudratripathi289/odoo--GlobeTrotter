@@ -1,5 +1,8 @@
 import * as communityService from '../services/community.service.js';
 
+const sanitizeQueryParam = (value) =>
+  typeof value === 'string' ? value.trim().toLowerCase() : '';
+
 export const getCommunityTrips = async (req, res, next) => {
   try {
     const result = await communityService.getCommunityTrips(req.query);
